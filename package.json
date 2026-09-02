@@ -1,0 +1,42 @@
+{
+    "name":  "kalpavruksha-real-estate",
+    "version":  "1.0.0",
+    "private":  true,
+    "scripts":  {
+                    "dev":  "next dev",
+                    "build":  "next build",
+                    "start":  "next start",
+                    "lint":  "eslint .",
+                    "typecheck":  "tsc --noEmit"
+                },
+    "dependencies":  {
+                         "@hookform/resolvers":  "latest",
+                         "bcryptjs":  "latest",
+                         "clsx":  "latest",
+                         "googleapis":  "latest",
+                         "jose":  "latest",
+                         "lucide-react":  "latest",
+                         "next":  "^16.3.4",
+                         "react":  "latest",
+                         "react-dom":  "latest",
+                         "react-hook-form":  "latest",
+                         "sharp":  "latest",
+                         "tailwind-merge":  "latest",
+                         "exceljs":  "latest",
+                         "zod":  "latest"
+                     },
+    "devDependencies":  {
+                            "@tailwindcss/postcss":  "latest",
+                            "@types/bcryptjs":  "latest",
+                            "@types/node":  "latest",
+                            "@types/react":  "latest",
+                            "@types/react-dom":  "latest",
+                            "eslint":  "latest",
+                            "eslint-config-next":  "^16.3.4",
+                            "tailwindcss":  "latest",
+                            "typescript":  "latest"
+                        },
+    "overrides":  {
+                      "uuid":  "^11.1.1"
+                  }
+}
