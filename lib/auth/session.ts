@@ -16,9 +16,24 @@ export interface AdminSession {
 }
 
 export async function verifyPassword(email: string, password: string) {
-  if (!env.adminEmail || !env.adminPasswordHash) return false;
+  if (!env.adminEmail || !env.adminPasswordHash) {
+    console.error("[auth] Admin credentials are missing.", {
+      emailConfigured: Boolean(env.adminEmail),
+      passwordHashConfigured: Boolean(env.adminPasswordHash)
+    });
+    return false;
+  }
+  if (!env.adminPasswordHash.startsWith("$2")) {
+    console.error("[auth] ADMIN_PASSWORD_HASH is not a valid bcrypt hash.");
+    return false;
+  }
   if (email.toLowerCase() !== env.adminEmail.toLowerCase()) return false;
-  return bcrypt.compare(password, env.adminPasswordHash);
+  try {
+    return await bcrypt.compare(password, env.adminPasswordHash);
+  } catch (error) {
+    console.error("[auth] Password verification failed.", error);
+    return false;
+  }
 }
 
 export async function createSession() {
