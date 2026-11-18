@@ -1,18 +1,17 @@
 import type { Role } from "@/types";
 
 function resolveAdminPasswordHash() {
-  const directHash = process.env.ADMIN_PASSWORD_HASH?.trim() || "";
-  if (directHash.startsWith("$2")) return directHash;
-
   const encodedHash = process.env.ADMIN_PASSWORD_HASH_BASE64?.trim() || "";
-  if (!encodedHash) return directHash;
-
-  try {
-    const decodedHash = Buffer.from(encodedHash, "base64").toString("utf8").trim();
-    return decodedHash.startsWith("$2") ? decodedHash : directHash;
-  } catch {
-    return directHash;
+  if (encodedHash) {
+    try {
+      const decodedHash = Buffer.from(encodedHash, "base64").toString("utf8").trim();
+      if (decodedHash.startsWith("$2")) return decodedHash;
+    } catch {
+      // Fall back to the direct hash below.
+    }
   }
+
+  return process.env.ADMIN_PASSWORD_HASH?.trim() || "";
 }
 
 export const env = {
