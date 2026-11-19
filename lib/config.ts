@@ -1,7 +1,7 @@
 import type { Role } from "@/types";
 
 function resolveAdminPasswordHash() {
-  const encodedHash = process.env.ADMIN_PASSWORD_HASH_BASE64?.trim() || "";
+  const encodedHash = cleanEnvValue(process.env.ADMIN_PASSWORD_HASH_BASE64);
   if (encodedHash) {
     try {
       const decodedHash = Buffer.from(encodedHash, "base64").toString("utf8").trim();
@@ -11,7 +11,19 @@ function resolveAdminPasswordHash() {
     }
   }
 
-  return process.env.ADMIN_PASSWORD_HASH?.trim() || "";
+  return cleanEnvValue(process.env.ADMIN_PASSWORD_HASH);
+}
+
+function cleanEnvValue(value: string | undefined) {
+  const cleaned = value?.trim() || "";
+  if (
+    cleaned.length >= 2 &&
+    ((cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+      (cleaned.startsWith("'") && cleaned.endsWith("'")))
+  ) {
+    return cleaned.slice(1, -1).trim();
+  }
+  return cleaned;
 }
 
 export const env = {
@@ -21,7 +33,7 @@ export const env = {
   googlePrivateKey: (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
   driveFolderId: process.env.GOOGLE_DRIVE_FOLDER_ID || "",
   authSecret: process.env.AUTH_SECRET || "development-secret-change-before-production",
-  adminEmail: process.env.ADMIN_EMAIL || "",
+  adminEmail: cleanEnvValue(process.env.ADMIN_EMAIL) || "admin@example.com",
   adminPasswordHash: resolveAdminPasswordHash(),
   adminName: process.env.ADMIN_NAME || "Kalpavruksha Admin",
   adminRole: (process.env.ADMIN_ROLE || "SUPER_ADMIN") as Role,

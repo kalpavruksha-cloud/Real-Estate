@@ -1,5 +1,6 @@
 import "server-only";
 import bcrypt from "bcryptjs";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -23,11 +24,18 @@ export async function verifyPassword(email: string, password: string) {
     });
     return false;
   }
+  if (email.trim().toLowerCase() !== env.adminEmail.trim().toLowerCase()) return false;
+
+  // Existing deployments originally documented ADMIN_PASSWORD_HASH as a plain
+  // password. Continue to accept that legacy configuration so those projects
+  // can sign in, while preferring bcrypt (directly or through the Base64 env).
   if (!env.adminPasswordHash.startsWith("$2")) {
-    console.error("[auth] ADMIN_PASSWORD_HASH is not a valid bcrypt hash.");
-    return false;
+    console.warn("[auth] Using legacy plain-text ADMIN_PASSWORD_HASH; migrate to ADMIN_PASSWORD_HASH_BASE64.");
+    const suppliedDigest = createHash("sha256").update(password).digest();
+    const configuredDigest = createHash("sha256").update(env.adminPasswordHash).digest();
+    return timingSafeEqual(suppliedDigest, configuredDigest);
   }
-  if (email.toLowerCase() !== env.adminEmail.toLowerCase()) return false;
+
   try {
     return await bcrypt.compare(password, env.adminPasswordHash);
   } catch (error) {
