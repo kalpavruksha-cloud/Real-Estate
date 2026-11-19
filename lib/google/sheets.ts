@@ -7,6 +7,59 @@ function hasGoogleConfig() {
   return Boolean(env.spreadsheetId && env.googleClientEmail && env.googlePrivateKey);
 }
 
+export async function checkGoogleSheetsConnection() {
+  const configuration = {
+    spreadsheetId: Boolean(env.spreadsheetId),
+    clientEmail: Boolean(env.googleClientEmail),
+    privateKey: Boolean(env.googlePrivateKey),
+    privateKeyLooksValid:
+      env.googlePrivateKey.trim().startsWith("-----BEGIN PRIVATE KEY-----") &&
+      env.googlePrivateKey.trim().endsWith("-----END PRIVATE KEY-----")
+  };
+
+  const missing = Object.entries(configuration)
+    .filter(([key, configured]) => key !== "privateKeyLooksValid" && !configured)
+    .map(([key]) => key);
+
+  if (missing.length) {
+    return {
+      ok: false,
+      configuration,
+      error: `Missing Google configuration: ${missing.join(", ")}`
+    };
+  }
+
+  if (!configuration.privateKeyLooksValid) {
+    return {
+      ok: false,
+      configuration,
+      error: "GOOGLE_PRIVATE_KEY is not a PEM private key. Use the private_key value from the service-account JSON, not private_key_id."
+    };
+  }
+
+  try {
+    const sheets = await getSheets();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: env.spreadsheetId,
+      range: "PROPERTIES!A1:AS3"
+    });
+    return {
+      ok: true,
+      configuration,
+      spreadsheetReachable: true,
+      propertyRowsRead: Math.max((response.data.values?.length || 1) - 1, 0)
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown Google Sheets error";
+    return {
+      ok: false,
+      configuration,
+      spreadsheetReachable: false,
+      error: message.replace(/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/g, "[redacted]")
+    };
+  }
+}
+
 async function getSheets() {
   if (!hasGoogleConfig()) {
     throw new Error("Google Sheets environment variables are not configured.");

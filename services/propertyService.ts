@@ -15,12 +15,16 @@ function normalizeProperty(row: Record<string, unknown>): Property {
   return parsed as Property;
 }
 
-async function getPropertiesFresh() {
-  const rows = await readSheet(SHEETS.properties);
-  return rows.map(normalizeProperty);
+function isCompletePropertyRow(row: Record<string, unknown>) {
+  return Boolean(String(row.Title || "").trim());
 }
 
-export const getProperties = cache(getPropertiesFresh, ["properties"], { revalidate: 120, tags: ["properties"] });
+async function getPropertiesFresh() {
+  const rows = await readSheet(SHEETS.properties);
+  return rows.filter(isCompletePropertyRow).map(normalizeProperty);
+}
+
+export const getProperties = cache(getPropertiesFresh, ["properties"], { revalidate: 30, tags: ["properties"] });
 
 export async function getAdminProperties() {
   return getPropertiesFresh();
@@ -49,11 +53,13 @@ export async function getPublishedProperties() {
 }
 
 export async function createProperty(form: FormData, createdBy: string) {
-  const rows = await getAdminProperties();
+  const sheetRows = await readSheet(SHEETS.properties);
   const data = Object.fromEntries(form);
+  const placeholder = sheetRows.find((row) => row.PropertyID && !isCompletePropertyRow(row));
+  const propertyId = String(data.PropertyID || placeholder?.PropertyID || nextId(sheetRows.map((row) => row.PropertyID), "KRE", 4));
   const parsed = propertySchema.parse({
     ...data,
-    PropertyID: data.PropertyID || nextId(rows.map((row) => row.PropertyID), "KRE", 4),
+    PropertyID: propertyId,
     Slug: data.Slug || "",
     PriceDisplay: data.PriceDisplay || "",
     DateAdded: todayIso(),
@@ -69,7 +75,12 @@ export async function createProperty(form: FormData, createdBy: string) {
     SEO_Description:
       parsed.SEO_Description || `${parsed.PropertyType} for ${parsed.Purpose.toLowerCase()} in ${parsed.Locality}, ${parsed.City}. Contact Kalpavruksha Real Estate for details.`
   };
-  await appendSheetRow(SHEETS.properties, PROPERTY_HEADERS, row);
+  const existingRow = sheetRows.some((item) => item.PropertyID === row.PropertyID);
+  if (existingRow) {
+    await updateSheetRowById(SHEETS.properties, PROPERTY_HEADERS, "PropertyID", row.PropertyID, row);
+  } else {
+    await appendSheetRow(SHEETS.properties, PROPERTY_HEADERS, row);
+  }
   revalidateTag("properties", "max");
   return row as Property;
 }
