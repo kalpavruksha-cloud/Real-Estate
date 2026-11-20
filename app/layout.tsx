@@ -3,6 +3,10 @@ import Script from "next/script";
 import "./globals.css";
 import { env } from "@/lib/config";
 
+// Google Sheets is the live datastore. Render routes at request time so a
+// temporary credential or API issue cannot make the Vercel build fail.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   metadataBase: new URL(env.siteUrl),
   title: {
