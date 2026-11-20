@@ -26,10 +26,20 @@ function cleanEnvValue(value: string | undefined) {
   return cleaned;
 }
 
+function resolveGoogleClientEmail() {
+  const configured = cleanEnvValue(process.env.GOOGLE_CLIENT_EMAIL);
+  // The original deployment used the shortened `estate@...` address, while
+  // the issued service-account key belongs to `real-estate@...`.
+  if (configured === "estate@kalpa-realestate-2026.iam.gserviceaccount.com") {
+    return "real-estate@kalpa-realestate-2026.iam.gserviceaccount.com";
+  }
+  return configured;
+}
+
 export const env = {
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID || "",
-  googleClientEmail: process.env.GOOGLE_CLIENT_EMAIL || "",
+  googleClientEmail: resolveGoogleClientEmail(),
   googlePrivateKey: (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
   driveFolderId: process.env.GOOGLE_DRIVE_FOLDER_ID || "",
   authSecret: process.env.AUTH_SECRET || "development-secret-change-before-production",
