@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 import { env } from "@/lib/config";
 import { getPublishedProperties } from "@/services/propertyService";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  await connection();
   const properties = await getPublishedProperties();
   return [
     "",
