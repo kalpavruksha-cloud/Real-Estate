@@ -6,7 +6,12 @@ import { enquirySchema, enquiryUpdateSchema } from "@/schemas/leads";
 import type { Enquiry } from "@/types";
 
 export async function getEnquiries() {
-  return (await readSheet(SHEETS.enquiries)) as unknown as Enquiry[];
+  const rows = await readSheet(SHEETS.enquiries);
+  return rows.filter((row) => row.EnquiryID).map((row) => ({
+    ...row,
+    Name: row.CustomerName || row.Name || "",
+    UTMCampaign: row.UTM_Campaign || row.UTMCampaign || ""
+  })) as unknown as Enquiry[];
 }
 
 export async function createEnquiry(input: unknown) {
@@ -21,7 +26,11 @@ export async function createEnquiry(input: unknown) {
     NextFollowUp: "",
     Notes: ""
   };
-  await appendSheetRow(SHEETS.enquiries, ENQUIRY_HEADERS, row as unknown as Record<string, unknown>);
+  await appendSheetRow(SHEETS.enquiries, ENQUIRY_HEADERS, {
+    ...row,
+    CustomerName: row.Name,
+    UTM_Campaign: row.UTMCampaign
+  });
   revalidateTag("leads", "max");
   return row;
 }

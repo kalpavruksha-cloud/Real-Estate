@@ -60,10 +60,10 @@ export const PROPERTY_HEADERS = [
 ] as const;
 
 export const IMAGE_HEADERS = ["ImageID", "PropertyID", "ImageURL", "ImageOrder", "AltText", "ImageType", "Active", "Notes"] as const;
-export const ENQUIRY_HEADERS = ["EnquiryID", "DateTime", "PropertyID", "PropertyTitle", "PropertyURL", "Name", "Phone", "Email", "Message", "Source", "UTMCampaign", "Status", "AssignedTo", "NextFollowUp", "Notes"] as const;
-export const VISIT_HEADERS = ["VisitID", "DateTime", "PropertyID", "PropertyTitle", "Name", "Phone", "Email", "PreferredDate", "PreferredTime", "Status", "AssignedTo", "ActualVisitDate", "Notes"] as const;
-export const REQUIREMENT_HEADERS = ["RequirementID", "DateTime", "LookingTo", "Category", "PropertyType", "PreferredCity", "PreferredLocality", "MinimumBudget", "MaximumBudget", "Bedrooms", "MinimumArea", "AreaUnit", "AdditionalRequirements", "Name", "Phone", "Email", "Status", "AssignedTo", "Notes"] as const;
-export const OWNER_HEADERS = ["OwnerLeadID", "DateTime", "OwnerName", "Phone", "Email", "SellRent", "Category", "PropertyType", "City", "Locality", "Address", "ExpectedPrice", "PlotArea", "BuiltupArea", "AreaUnit", "Description", "ImageURLs", "Status", "AssignedTo", "Notes"] as const;
+export const ENQUIRY_HEADERS = ["EnquiryID", "DateTime", "PropertyID", "PropertyTitle", "CustomerName", "Phone", "Email", "Source", "Message", "Status", "AssignedTo", "NextFollowUp", "PropertyURL", "UTM_Campaign", "Notes"] as const;
+export const VISIT_HEADERS = ["VisitID", "RequestedAt", "PropertyID", "PropertyTitle", "CustomerName", "Phone", "Email", "PreferredDate", "PreferredTime", "Status", "AssignedTo", "ConfirmedDate", "ConfirmedTime", "Outcome", "Source", "Notes"] as const;
+export const REQUIREMENT_HEADERS = ["RequirementID", "DateTime", "CustomerName", "Phone", "Email", "LookingTo", "Category", "PropertyType", "PreferredCity", "PreferredLocality", "MinBudget", "MaxBudget", "Bedrooms", "MinArea", "AreaUnit", "AdditionalRequirements", "Status", "AssignedTo"] as const;
+export const OWNER_HEADERS = ["OwnerLeadID", "DateTime", "OwnerName", "Phone", "Email", "Intent", "Category", "PropertyType", "City", "Locality", "Address", "ExpectedPrice", "PlotArea", "BuiltupArea", "AreaUnit", "Description", "ImageLinks", "Status", "AssignedTo", "Notes"] as const;
 export const LOOKUP_HEADERS = ["ID", "Name", "Category", "City", "Locality", "Active", "DisplayOrder", "Notes"] as const;
 export const SETTINGS_HEADERS = ["Key", "Value", "Notes"] as const;
 

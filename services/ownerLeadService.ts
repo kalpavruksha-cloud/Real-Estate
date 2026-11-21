@@ -6,7 +6,12 @@ import { ownerLeadSchema, ownerLeadUpdateSchema } from "@/schemas/leads";
 import type { OwnerLead } from "@/types";
 
 export async function getOwnerLeads() {
-  return (await readSheet(SHEETS.ownerLeads)) as unknown as OwnerLead[];
+  const rows = await readSheet(SHEETS.ownerLeads);
+  return rows.filter((row) => row.OwnerLeadID).map((row) => ({
+    ...row,
+    SellRent: row.Intent || row.SellRent || "",
+    ImageURLs: row.ImageLinks || row.ImageURLs || ""
+  })) as unknown as OwnerLead[];
 }
 
 export async function createOwnerLead(input: unknown, imageUrls = "") {
@@ -21,7 +26,11 @@ export async function createOwnerLead(input: unknown, imageUrls = "") {
     AssignedTo: "",
     Notes: ""
   };
-  await appendSheetRow(SHEETS.ownerLeads, OWNER_HEADERS, row as unknown as Record<string, unknown>);
+  await appendSheetRow(SHEETS.ownerLeads, OWNER_HEADERS, {
+    ...row,
+    Intent: row.SellRent,
+    ImageLinks: row.ImageURLs
+  });
   revalidateTag("leads", "max");
   return row;
 }

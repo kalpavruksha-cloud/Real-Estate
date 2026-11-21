@@ -1,5 +1,5 @@
 import { unstable_cache as cache, revalidateTag } from "next/cache";
-import { LOOKUP_HEADERS, SHEETS } from "@/lib/constants";
+import { SHEETS } from "@/lib/constants";
 import { appendSheetRow, readSheet, updateSheetRowById } from "@/lib/google/sheets";
 import { nextId } from "@/lib/utils";
 import { lookupSchema } from "@/schemas/lookups";
@@ -29,6 +29,91 @@ const fallbackAmenities: LookupOption[] = [
   { ID: "AMN-FALLBACK-4", Name: "Security", Active: "Yes", DisplayOrder: "4" }
 ];
 
+const lookupStorage = {
+  LOCATIONS: {
+    headers: ["LocationID", "City", "Locality", "State", "Country", "Active", "DisplayOrder"] as const,
+    idColumn: "LocationID",
+    prefix: "LOC"
+  },
+  CATEGORIES: {
+    headers: ["TypeID", "Category", "PropertyType", "Active", "DisplayOrder", "Notes"] as const,
+    idColumn: "TypeID",
+    prefix: "TYP"
+  },
+  AMENITIES: {
+    headers: ["AmenityID", "Amenity", "Category", "Active", "DisplayOrder"] as const,
+    idColumn: "AmenityID",
+    prefix: "AMN"
+  }
+} as const;
+
+function fromSheetRow(tab: keyof typeof lookupStorage, row: Record<string, string>): LookupOption {
+  if (tab === "LOCATIONS") {
+    return {
+      ID: row.LocationID || "",
+      Name: row.Locality || row.City || "",
+      City: row.City || "",
+      Locality: row.Locality || "",
+      Active: (row.Active || "Yes") as LookupOption["Active"],
+      DisplayOrder: row.DisplayOrder || "100",
+      Notes: ""
+    };
+  }
+  if (tab === "CATEGORIES") {
+    return {
+      ID: row.TypeID || "",
+      Name: row.PropertyType || "",
+      Category: row.Category || "",
+      Active: (row.Active || "Yes") as LookupOption["Active"],
+      DisplayOrder: row.DisplayOrder || "100",
+      Notes: row.Notes || ""
+    };
+  }
+  return {
+    ID: row.AmenityID || "",
+    Name: row.Amenity || "",
+    Category: row.Category || "",
+    Active: (row.Active || "Yes") as LookupOption["Active"],
+    DisplayOrder: row.DisplayOrder || "100",
+    Notes: ""
+  };
+}
+
+function toSheetRow(tab: keyof typeof lookupStorage, row: LookupOption) {
+  if (tab === "LOCATIONS") {
+    return {
+      LocationID: row.ID,
+      City: row.City || row.Name,
+      Locality: row.Locality || "",
+      State: "",
+      Country: "India",
+      Active: row.Active,
+      DisplayOrder: row.DisplayOrder
+    };
+  }
+  if (tab === "CATEGORIES") {
+    return {
+      TypeID: row.ID,
+      Category: row.Category || "",
+      PropertyType: row.Name,
+      Active: row.Active,
+      DisplayOrder: row.DisplayOrder,
+      Notes: row.Notes || ""
+    };
+  }
+  return {
+    AmenityID: row.ID,
+    Amenity: row.Name,
+    Category: row.Category || "",
+    Active: row.Active,
+    DisplayOrder: row.DisplayOrder
+  };
+}
+
+async function getLookupRows(tab: keyof typeof lookupStorage) {
+  return (await readSheet(tab)).map((row) => fromSheetRow(tab, row)).filter((row) => row.ID && row.Name);
+}
+
 function sortActive(rows: LookupOption[]) {
   return rows
     .filter((row) => row.Active !== "No")
@@ -40,22 +125,28 @@ function withFallback(rows: LookupOption[], fallback: LookupOption[]) {
   return activeRows.length ? activeRows : fallback;
 }
 
-export const getLocations = cache(async () => withFallback((await readSheet(SHEETS.locations)) as unknown as LookupOption[], fallbackLocations), ["locations"], { revalidate: 300, tags: ["lookups"] });
-export const getCategories = cache(async () => withFallback((await readSheet(SHEETS.categories)) as unknown as LookupOption[], fallbackCategories), ["categories"], { revalidate: 300, tags: ["lookups"] });
-export const getAmenities = cache(async () => withFallback((await readSheet(SHEETS.amenities)) as unknown as LookupOption[], fallbackAmenities), ["amenities"], { revalidate: 300, tags: ["lookups"] });
+export const getLocations = cache(async () => withFallback(await getLookupRows(SHEETS.locations), fallbackLocations), ["locations"], { revalidate: 300, tags: ["lookups"] });
+export const getCategories = cache(async () => withFallback(await getLookupRows(SHEETS.categories), fallbackCategories), ["categories"], { revalidate: 300, tags: ["lookups"] });
+export const getAmenities = cache(async () => withFallback(await getLookupRows(SHEETS.amenities), fallbackAmenities), ["amenities"], { revalidate: 300, tags: ["lookups"] });
 
 export async function getAllLookup(tab: "LOCATIONS" | "CATEGORIES" | "AMENITIES") {
-  return (await readSheet(tab)) as unknown as LookupOption[];
+  return getLookupRows(tab);
 }
 
 export async function saveLookup(tab: "LOCATIONS" | "CATEGORIES" | "AMENITIES", data: FormData) {
   const parsed = lookupSchema.parse(Object.fromEntries(data));
   const rows = await readSheet(tab);
+  const storage = lookupStorage[tab];
+  const currentIds = rows.map((row) => row[storage.idColumn]);
+  const normalized = {
+    ...parsed,
+    ID: parsed.ID || nextId(currentIds, storage.prefix, 3)
+  } as LookupOption;
+  const sheetRow = toSheetRow(tab, normalized);
   if (parsed.ID) {
-    await updateSheetRowById(tab, LOOKUP_HEADERS, "ID", parsed.ID, parsed);
+    await updateSheetRowById(tab, storage.headers, storage.idColumn, parsed.ID, sheetRow);
   } else {
-    const prefix = tab === SHEETS.locations ? "LOC" : tab === SHEETS.categories ? "CAT" : "AMN";
-    await appendSheetRow(tab, LOOKUP_HEADERS, { ...parsed, ID: nextId(rows.map((row) => row.ID), prefix, 4) });
+    await appendSheetRow(tab, storage.headers, sheetRow);
   }
   revalidateTag("lookups", "max");
 }

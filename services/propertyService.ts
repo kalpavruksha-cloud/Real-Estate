@@ -7,12 +7,33 @@ import { getImagesForProperty } from "@/services/imageService";
 import { getSettings } from "@/services/settingsService";
 import type { Property, PublicProperty } from "@/types";
 
-function normalizeProperty(row: Record<string, unknown>): Property {
-  const parsed = propertySchema.parse({
+function normalizeProperty(row: Record<string, unknown>): Property | null {
+  const title = String(row.Title || "").trim();
+  if (!title) return null;
+  const propertyId = String(row.PropertyID || "").trim();
+  const city = String(row.City || "").trim();
+  const locality = String(row.Locality || "").trim();
+  const price = Number(row.Price || 0);
+  const parsed = propertySchema.safeParse({
     ...row,
-    Price: Number(row.Price || 0)
+    PropertyID: propertyId,
+    Slug: String(row.Slug || "").trim() || `${slugify(title)}-${propertyId.toLowerCase()}`,
+    Price: price,
+    PriceDisplay: String(row.PriceDisplay || "").trim() || formatPrice(price),
+    Negotiable: row.Negotiable || "No",
+    Description: String(row.Description || "").trim() || `${title} in ${locality}, ${city}. Contact Kalpavruksha Real Estate for details.`,
+    Featured: row.Featured || "No",
+    Verified: row.Verified || "No",
+    Status: row.Status || "Available",
+    MainImage: row.MainImage || "",
+    VideoURL: row.VideoURL || "",
+    Published: row.Published || "No"
   });
-  return parsed as Property;
+  if (!parsed.success) {
+    console.error(`[properties] Skipping invalid row ${propertyId || "without an ID"}.`, parsed.error.flatten().fieldErrors);
+    return null;
+  }
+  return parsed.data as Property;
 }
 
 function isCompletePropertyRow(row: Record<string, unknown>) {
@@ -21,7 +42,7 @@ function isCompletePropertyRow(row: Record<string, unknown>) {
 
 async function getPropertiesFresh() {
   const rows = await readSheet(SHEETS.properties);
-  return rows.filter(isCompletePropertyRow).map(normalizeProperty);
+  return rows.map(normalizeProperty).filter((property): property is Property => property !== null);
 }
 
 export const getProperties = cache(getPropertiesFresh, ["properties"], { revalidate: 30, tags: ["properties"] });

@@ -6,7 +6,13 @@ import { siteVisitSchema, siteVisitUpdateSchema } from "@/schemas/leads";
 import type { SiteVisit } from "@/types";
 
 export async function getSiteVisits() {
-  return (await readSheet(SHEETS.visits)) as unknown as SiteVisit[];
+  const rows = await readSheet(SHEETS.visits);
+  return rows.filter((row) => row.VisitID).map((row) => ({
+    ...row,
+    DateTime: row.RequestedAt || row.DateTime || "",
+    Name: row.CustomerName || row.Name || "",
+    ActualVisitDate: row.ConfirmedDate || row.ActualVisitDate || ""
+  })) as unknown as SiteVisit[];
 }
 
 export async function createSiteVisit(input: unknown) {
@@ -21,14 +27,25 @@ export async function createSiteVisit(input: unknown) {
     ActualVisitDate: "",
     Notes: ""
   };
-  await appendSheetRow(SHEETS.visits, VISIT_HEADERS, row as unknown as Record<string, unknown>);
+  await appendSheetRow(SHEETS.visits, VISIT_HEADERS, {
+    ...row,
+    RequestedAt: row.DateTime,
+    CustomerName: row.Name,
+    ConfirmedDate: row.ActualVisitDate,
+    ConfirmedTime: "",
+    Outcome: "",
+    Source: "Website"
+  });
   revalidateTag("leads", "max");
   return row;
 }
 
 export async function updateSiteVisit(input: unknown) {
   const parsed = siteVisitUpdateSchema.parse(input);
-  await updateSheetRowById(SHEETS.visits, VISIT_HEADERS, "VisitID", parsed.VisitID, parsed);
+  await updateSheetRowById(SHEETS.visits, VISIT_HEADERS, "VisitID", parsed.VisitID, {
+    ...parsed,
+    ConfirmedDate: parsed.ActualVisitDate
+  });
   revalidateTag("leads", "max");
 }
 

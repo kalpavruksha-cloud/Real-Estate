@@ -6,7 +6,15 @@ import { requirementSchema, requirementUpdateSchema } from "@/schemas/leads";
 import type { Requirement } from "@/types";
 
 export async function getRequirements() {
-  return (await readSheet(SHEETS.requirements)) as unknown as Requirement[];
+  const rows = await readSheet(SHEETS.requirements);
+  return rows.filter((row) => row.RequirementID).map((row) => ({
+    ...row,
+    Name: row.CustomerName || row.Name || "",
+    MinimumBudget: row.MinBudget || row.MinimumBudget || "",
+    MaximumBudget: row.MaxBudget || row.MaximumBudget || "",
+    MinimumArea: row.MinArea || row.MinimumArea || "",
+    Notes: row.Notes || ""
+  })) as unknown as Requirement[];
 }
 
 export async function createRequirement(input: unknown) {
@@ -20,7 +28,13 @@ export async function createRequirement(input: unknown) {
     AssignedTo: "",
     Notes: ""
   };
-  await appendSheetRow(SHEETS.requirements, REQUIREMENT_HEADERS, row as unknown as Record<string, unknown>);
+  await appendSheetRow(SHEETS.requirements, REQUIREMENT_HEADERS, {
+    ...row,
+    CustomerName: row.Name,
+    MinBudget: row.MinimumBudget,
+    MaxBudget: row.MaximumBudget,
+    MinArea: row.MinimumArea
+  });
   revalidateTag("leads", "max");
   return row;
 }
