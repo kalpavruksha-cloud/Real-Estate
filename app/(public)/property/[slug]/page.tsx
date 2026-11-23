@@ -73,7 +73,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
               <a className="btn btn-primary" href={whatsappLink(env.whatsappNumber || property.ContactPhone, message)} target="_blank" rel="noreferrer"><MessageCircle size={18} /> WhatsApp</a>
               <a className="btn btn-secondary" href={`tel:${env.businessPhone || property.ContactPhone}`}><Phone size={18} /> Call</a>
             </div>
-            <EnquiryForm property={property} url={url} />
+            <div id="enquire"><EnquiryForm property={property} url={url} /></div>
             <SiteVisitForm property={property} />
           </aside>
         </div>

@@ -144,6 +144,41 @@ export async function clearAndWriteSheet(tab: string, headers: readonly string[]
   });
 }
 
+export async function saveSettingsValues(tab: string, settings: Record<string, string>) {
+  const sheets = await getSheets();
+  const response = await sheets.spreadsheets.values.get({ spreadsheetId: env.spreadsheetId, range: `${tab}!A:ZZ` });
+  const [headers = [], ...rows] = response.data.values || [];
+  if (!headers.length) throw new Error(`The ${tab} sheet has no header row.`);
+  const keyColumn = headers.indexOf("SettingKey") >= 0 ? headers.indexOf("SettingKey") : headers.indexOf("Key");
+  const valueColumn = headers.indexOf("SettingValue") >= 0 ? headers.indexOf("SettingValue") : headers.indexOf("Value");
+  if (keyColumn < 0 || valueColumn < 0) throw new Error(`The ${tab} sheet needs SettingKey/SettingValue or Key/Value columns.`);
+  const activeColumn = headers.indexOf("Active");
+  const descriptionColumn = headers.indexOf("Description") >= 0 ? headers.indexOf("Description") : headers.indexOf("Notes");
+  const updates: { range: string; values: string[][] }[] = [];
+  const appends: string[][] = [];
+  for (const [key, value] of Object.entries(settings)) {
+    const index = rows.findIndex((row) => row[keyColumn] === key);
+    if (index >= 0) {
+      const rowNumber = index + 2;
+      updates.push({ range: `${tab}!${columnLetter(valueColumn + 1)}${rowNumber}`, values: [[value]] });
+    } else {
+      const newRow = headers.map(() => "");
+      if (headers.includes("SettingGroup")) newRow[headers.indexOf("SettingGroup")] = "General";
+      newRow[keyColumn] = key;
+      newRow[valueColumn] = value;
+      if (activeColumn >= 0) newRow[activeColumn] = "Yes";
+      if (descriptionColumn >= 0) newRow[descriptionColumn] = "Managed from portal settings";
+      appends.push(newRow);
+    }
+  }
+  for (const update of updates) {
+    await sheets.spreadsheets.values.update({ spreadsheetId: env.spreadsheetId, range: update.range, valueInputOption: "RAW", requestBody: { values: update.values } });
+  }
+  if (appends.length) {
+    await sheets.spreadsheets.values.append({ spreadsheetId: env.spreadsheetId, range: `${tab}!A:ZZ`, valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: appends } });
+  }
+}
+
 function columnLetter(column: number) {
   let letter = "";
   while (column > 0) {

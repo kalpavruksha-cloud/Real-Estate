@@ -36,13 +36,18 @@ function resolveGoogleClientEmail() {
   return configured;
 }
 
+const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+const siteUrl = process.env.NODE_ENV === "production" && /localhost|127\.0\.0\.1/i.test(configuredSiteUrl)
+  ? "https://real-estate-theta-three.vercel.app"
+  : configuredSiteUrl || (process.env.NODE_ENV === "production" ? "https://real-estate-theta-three.vercel.app" : "http://localhost:3000");
+
 export const env = {
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  siteUrl: siteUrl.replace(/\/$/, ""),
   spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID || "",
   googleClientEmail: resolveGoogleClientEmail(),
   googlePrivateKey: (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
   driveFolderId: process.env.GOOGLE_DRIVE_FOLDER_ID || "",
-  authSecret: process.env.AUTH_SECRET || "development-secret-change-before-production",
+  authSecret: process.env.AUTH_SECRET || (process.env.NODE_ENV === "production" ? "" : "development-secret-change-before-production"),
   adminEmail: cleanEnvValue(process.env.ADMIN_EMAIL) || "admin@example.com",
   adminPasswordHash: resolveAdminPasswordHash(),
   adminName: process.env.ADMIN_NAME || "Kalpavruksha Admin",

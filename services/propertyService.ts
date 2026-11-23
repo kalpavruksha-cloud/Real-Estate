@@ -108,8 +108,15 @@ export async function createProperty(form: FormData, createdBy: string) {
 
 export async function updateProperty(form: FormData) {
   const data = Object.fromEntries(form);
+  const existing = await getPropertyById(String(data.PropertyID || ""));
+  if (!existing) throw new Error("Property not found.");
+  const amenities = form.getAll("amenity-box").map(String).filter(Boolean);
   const parsed = propertySchema.parse({
     ...data,
+    Slug: data.Slug || existing.Slug,
+    DateAdded: existing.DateAdded,
+    CreatedBy: existing.CreatedBy,
+    Amenities: amenities.length ? amenities.join(", ") : data.Amenities || "",
     DateUpdated: todayIso(),
     PriceDisplay: data.PriceDisplay || formatPrice(Number(data.Price || 0))
   });

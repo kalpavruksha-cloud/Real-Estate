@@ -67,6 +67,7 @@ export function PropertyForm({
         <input className="input mt-4" name="Amenities" defaultValue={p?.Amenities} placeholder="Comma separated amenities" />
       </div>
       <Section title="Marketing, SEO, and Internal">
+        <Input name="Slug" label="URL Slug" value={p?.Slug} />
         <Select name="Featured" label="Featured" value={p?.Featured} options={["No", "Yes"]} />
         <Select name="Verified" label="Verified" value={p?.Verified} options={["No", "Yes"]} />
         <Select name="Status" label="Status" value={p?.Status} options={[...PROPERTY_STATUSES]} />

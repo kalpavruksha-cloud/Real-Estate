@@ -14,6 +14,7 @@ export function EnquiryForm({ property, url }: { property: Property; url: string
       <input className="input" name="Phone" placeholder="Phone" required />
       <input className="input" name="Email" placeholder="Email" type="email" />
       <textarea className="textarea" name="Message" placeholder="Message" />
+      <Consent />
       <button className="btn btn-primary" type="submit"><Send size={17} /> Send Enquiry</button>
     </form>
   );
@@ -32,6 +33,7 @@ export function SiteVisitForm({ property }: { property: Property }) {
         <input className="input" name="PreferredDate" type="date" required />
         <input className="input" name="PreferredTime" type="time" required />
       </div>
+      <Consent />
       <button className="btn btn-accent" type="submit">Request Visit</button>
     </form>
   );
@@ -58,6 +60,7 @@ export function RequirementForm() {
         <input className="input" name="Phone" placeholder="Phone" required />
         <input className="input" name="Email" placeholder="Email" type="email" />
       </div>
+      <Consent />
       <button className="btn btn-primary" type="submit">Submit Requirement</button>
     </form>
   );
@@ -83,9 +86,14 @@ export function OwnerLeadForm() {
       </div>
       <textarea className="textarea" name="Description" placeholder="Description" />
       <input className="input" type="file" name="Images" accept="image/jpeg,image/png,image/webp" multiple />
+      <Consent />
       <button className="btn btn-primary" type="submit">Submit Property</button>
     </form>
   );
+}
+
+function Consent() {
+  return <label className="flex items-start gap-2 text-xs leading-5 text-[#48534d]"><input className="mt-1" type="checkbox" name="PrivacyConsent" value="Yes" required /><span>I agree that Kalpavruksha Real Estate may use my details to respond to this request. See the <a className="underline" href="/privacy">Privacy Policy</a>.</span></label>;
 }
 
 function Select({ name, label, options }: { name: string; label: string; options: string[] }) {

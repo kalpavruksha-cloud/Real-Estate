@@ -1,7 +1,7 @@
 import { unstable_cache as cache, revalidateTag } from "next/cache";
-import { SETTINGS_HEADERS, SHEETS } from "@/lib/constants";
+import { SHEETS } from "@/lib/constants";
 import { env } from "@/lib/config";
-import { clearAndWriteSheet, readSheet } from "@/lib/google/sheets";
+import { readSheet, saveSettingsValues } from "@/lib/google/sheets";
 import { settingsSchema } from "@/schemas/lookups";
 import type { SiteSettings } from "@/types";
 
@@ -9,7 +9,7 @@ const defaults: SiteSettings = {
   BusinessName: "Kalpavruksha Real Estate",
   Phone: env.businessPhone || "+91-8792991762",
   WhatsApp: env.whatsappNumber || "+91-8792991762",
-  Email: process.env.BUSINESS_EMAIL || "re.kalpavrukshawealth.com",
+  Email: process.env.BUSINESS_EMAIL || "",
   Address: process.env.BUSINESS_ADDRESS || "Near beldale petrol pump, Gumpa, Bidar-585403",
   DefaultCity: "Bidar",
   LocationPrivacy: "Approximate",
@@ -21,7 +21,10 @@ const defaults: SiteSettings = {
 
 async function getSettingsFresh(): Promise<SiteSettings> {
   const rows = await readSheet(SHEETS.settings);
-  const sheetValues = Object.fromEntries(rows.filter((row) => row.Key && row.Value).map((row) => [row.Key, row.Value]));
+  const sheetValues = Object.fromEntries(rows
+    .filter((row) => (row.Active || "Yes").toLowerCase() !== "no")
+    .map((row) => [row.SettingKey || row.Key || "", row.SettingValue || row.Value || ""])
+    .filter(([key]) => key));
   return settingsSchema.parse({ ...defaults, ...sheetValues });
 }
 
@@ -29,7 +32,6 @@ export const getSettings = cache(getSettingsFresh, ["settings"], { revalidate: 3
 
 export async function updateSettings(settings: SiteSettings) {
   const parsed = settingsSchema.parse(settings);
-  const rows = Object.entries(parsed).map(([Key, Value]) => ({ Key, Value, Notes: "" }));
-  await clearAndWriteSheet(SHEETS.settings, SETTINGS_HEADERS, rows);
+  await saveSettingsValues(SHEETS.settings, parsed as Record<string, string>);
   revalidateTag("settings", "max");
 }
