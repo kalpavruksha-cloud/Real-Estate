@@ -8,13 +8,22 @@ import { getRequirements } from "@/services/requirementService";
 import { getOwnerLeads } from "@/services/ownerLeadService";
 
 export default async function AdminDashboard() {
-  const [properties, enquiries, visits, requirements, ownerLeads] = await Promise.all([
+  const results = await Promise.allSettled([
     getAdminProperties(),
     getEnquiries(),
     getSiteVisits(),
     getRequirements(),
     getOwnerLeads()
   ]);
+  const labels = ["Properties", "Enquiries", "Site visits", "Buyer requirements", "Owner leads"];
+  const failures = results.flatMap((result, index) => result.status === "rejected"
+    ? [{ label: labels[index], message: result.reason instanceof Error ? result.reason.message : "Unknown spreadsheet error" }]
+    : []);
+  const properties = results[0].status === "fulfilled" ? results[0].value : [];
+  const enquiries = results[1].status === "fulfilled" ? results[1].value : [];
+  const visits = results[2].status === "fulfilled" ? results[2].value : [];
+  const requirements = results[3].status === "fulfilled" ? results[3].value : [];
+  const ownerLeads = results[4].status === "fulfilled" ? results[4].value : [];
   const now = Number((await headers()).get("x-request-time") || 0);
   const cards = [
     ["Total Properties", properties.length, Building2],
@@ -33,6 +42,11 @@ export default async function AdminDashboard() {
 
   return (
     <div className="grid gap-7">
+      {failures.length ? <section className="card border border-amber-300 bg-amber-50 p-4" role="status">
+        <h2 className="font-black text-amber-950">Some spreadsheet data could not be loaded</h2>
+        <p className="mt-1 text-sm text-amber-900">Other admin sections remain available. Check the listed Google Sheets tabs and access settings.</p>
+        <ul className="mt-3 grid gap-1 text-sm text-amber-950">{failures.map((failure) => <li key={failure.label}><strong>{failure.label}:</strong> {failure.message}</li>)}</ul>
+      </section> : null}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Dashboard</h1>
