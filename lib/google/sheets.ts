@@ -39,15 +39,26 @@ export async function checkGoogleSheetsConnection() {
 
   try {
     const sheets = await getSheets();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: env.spreadsheetId,
-      range: "PROPERTIES!A1:AS3"
-    });
+    const tabs = ["PROPERTIES", "PROPERTY_IMAGES", "ENQUIRIES", "SITE_VISITS", "REQUIREMENTS", "OWNER_LEADS", "LOCATIONS", "CATEGORIES", "AMENITIES", "SETTINGS"];
+    const sheetChecks = await Promise.all(tabs.map(async (tab) => {
+      try {
+        const response = await sheets.spreadsheets.values.get({ spreadsheetId: env.spreadsheetId, range: `${tab}!A1:ZZ2` });
+        const [headers = [], ...rows] = response.data.values || [];
+        return { tab, ok: true, headers, sampleRowsRead: rows.length };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown Google Sheets error";
+        return { tab, ok: false, error: message.replace(/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/g, "[redacted]") };
+      }
+    }));
+    const properties = sheetChecks.find((check) => check.tab === "PROPERTIES");
+    const failures = sheetChecks.filter((check) => !check.ok);
     return {
-      ok: true,
+      ok: failures.length === 0,
       configuration,
       spreadsheetReachable: true,
-      propertyRowsRead: Math.max((response.data.values?.length || 1) - 1, 0)
+      propertyRowsRead: properties?.ok ? properties.sampleRowsRead : 0,
+      sheetChecks,
+      ...(failures.length ? { error: `Could not read spreadsheet tabs: ${failures.map((check) => check.tab).join(", ")}` } : {})
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Google Sheets error";
