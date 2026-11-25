@@ -16,6 +16,9 @@ export async function loginAction(form: FormData) {
   const email = String(form.get("email") || "");
   const password = String(form.get("password") || "");
   const next = String(form.get("next") || "/admin");
+  if (!process.env.AUTH_SECRET?.trim()) {
+    redirect(`/admin/login?error=configuration&next=${encodeURIComponent(next)}`);
+  }
   if (!(await verifyPassword(email, password))) {
     redirect(`/admin/login?error=invalid&next=${encodeURIComponent(next)}`);
   }

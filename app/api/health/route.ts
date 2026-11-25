@@ -1,5 +1,6 @@
 import { checkGoogleSheetsConnection } from "@/lib/google/sheets";
 import { rateLimit } from "@/lib/rateLimit";
+import { env } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export async function GET(request: Request) {
   const health = await checkGoogleSheetsConnection();
   return Response.json({
     ok: health.ok,
+    adminAuthConfigured: Boolean(env.authSecret && env.adminEmail && env.adminPasswordHash),
     spreadsheetReachable: health.spreadsheetReachable || false,
     propertyRowsRead: "propertyRowsRead" in health ? health.propertyRowsRead : 0,
     tabs: "sheetChecks" in health ? health.sheetChecks.map(({ tab, ok }) => ({ tab, ok })) : [],
